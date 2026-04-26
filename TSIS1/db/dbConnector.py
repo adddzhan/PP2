@@ -6,6 +6,7 @@ from db.PhoneBook import PhoneBook
 class DBConnector:
     def __init__(self):
         self.config = load_config()
+        
 
     def createTable(self):
         sql = '''
@@ -38,6 +39,7 @@ class DBConnector:
         except Exception as e:
             print("Error:", e)
 
+    
     def getAllRecords(self):
         sql = """
         SELECT c.id, c.first_name, c.last_name, c.email, c.birthday, g.name,
@@ -77,17 +79,7 @@ class DBConnector:
         except Exception as e:
             print("Error:", e)
 
-    def isUserExist(self, first_name):
-        sql = "SELECT id FROM contacts WHERE first_name=%s"
-        try:
-            with psycopg2.connect(**self.config) as conn:
-                with conn.cursor() as cur:
-                    cur.execute(sql, (first_name,))
-                    return cur.fetchone() is not None
-        except Exception as e:
-            print("Error:", e)
-            return False
-
+    
     def addContact(self, user: PhoneBook):
         try:
             with psycopg2.connect(**self.config) as conn:
@@ -124,6 +116,7 @@ class DBConnector:
         except Exception as e:
             print("Error:", e)
 
+    
     def getLimitOffset(self, limit, offset):
         sql = """
         SELECT c.first_name, c.last_name, g.name
@@ -139,6 +132,7 @@ class DBConnector:
         except Exception as e:
             print("Error:", e)
 
+    
     def deleteUserByFirstName(self, first_name):
         sql = "DELETE FROM contacts WHERE first_name=%s"
         try:
@@ -148,3 +142,56 @@ class DBConnector:
                 conn.commit()
         except Exception as e:
             print("Error:", e)
+
+    
+    def searchByEmail(self, query):
+        sql = """
+        SELECT first_name, last_name, email
+        FROM contacts
+        WHERE email ILIKE %s
+        """
+        try:
+            with psycopg2.connect(**self.config) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (f"%{query}%",))
+                    return cur.fetchall()
+        except Exception as e:
+            print("Error:", e)
+
+    
+    def filterByGroup(self, group_name):
+        sql = """
+        SELECT c.first_name, c.last_name, g.name
+        FROM contacts c
+        JOIN groups g ON c.group_id = g.id
+        WHERE g.name = %s
+        """
+        try:
+            with psycopg2.connect(**self.config) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (group_name,))
+                    return cur.fetchall()
+        except Exception as e:
+            print("Error:", e)
+
+    
+    def sortContacts(self, field):
+        if field not in ["first_name", "birthday"]:
+            print("Invalid sort field")
+            return []
+
+        sql = f"""
+        SELECT first_name, last_name, email, birthday
+        FROM contacts
+        ORDER BY {field}
+        """
+
+        try:
+            with psycopg2.connect(**self.config) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql)
+                    return cur.fetchall()
+        except Exception as e:
+            print("Error:", e)
+            
+    
